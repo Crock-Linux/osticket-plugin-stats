@@ -12,7 +12,7 @@ The API return a JSON object with the fields:
 - date
 - stats
 
-The stats currently are created with 11 queries. The sames in the src/sql/queries folder.
+The stats currently are created with 11 queries. The sames in the [src/sql/queries](https://github.com/sascocl/osticket-plugin-stats/tree/master/src/sql/queries) folder.
 
 You can pass 2 variables via GET (in the URL):
 
