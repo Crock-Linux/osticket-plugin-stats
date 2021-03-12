@@ -36,13 +36,12 @@ class StatsApiController extends ApiController
         // set from and to
         $date_from = !empty($_GET['date_from']) ? date('Y-m-d', strtotime($_GET['date_from'])) : date('Y-m').'-01';
         $date_to = !empty($_GET['date_to']) ? date('Y-m-d', strtotime($_GET['date_to'])) : date('Y-m-t', strtotime($date_from));
-        $date_to .= ' 23:59:59';
         // create response with all the queries availables
         $response = ['date' => ['from'=>$date_from, 'to'=>$date_to], 'stats'=>[]];
         foreach ($this->getQueries() as $name => $query) {
             $response['stats'][$name] = $this->query(
                 $query,
-                [':date_from' => $date_from, ':date_to' => $date_to]
+                [':date_from' => $date_from, ':date_to' => $date_to.' 23:59:59']
             );
         }
         // prepare response from result
