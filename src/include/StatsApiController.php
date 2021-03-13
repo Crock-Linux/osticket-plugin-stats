@@ -38,7 +38,7 @@ class StatsApiController extends ApiController
         $date_to = !empty($_GET['date_to']) ? date('Y-m-d', strtotime($_GET['date_to'])) : date('Y-m-t', strtotime($date_from));
         // get timezone
         global $ost;
-        $timezone = (new DateTime('now', new DateTimeZone($ost->getConfig()->getDbTimezone())))->format('P');
+        $timezone = (new DateTime('now', new DateTimeZone($ost->getConfig()->getTimezone())))->format('P');
         // create response with all the queries availables
         $response = [
             'osticket' => [
