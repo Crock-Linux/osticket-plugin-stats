@@ -9,6 +9,7 @@ You can get all the statistics with something like this:
 
 The API return a JSON object with the fields:
 
+- osticket
 - date
 - stats
 
@@ -18,5 +19,7 @@ You can pass 2 variables via GET (in the URL):
 
 - date_from: optional, by default the first day of the current month.
 - date_to: optional, by default the last day of the month of date_from.
+
+In the [dashboard directory](https://github.com/sascocl/osticket-plugin-stats/tree/master/dashboard) is an example of a dashboard that uses the plugin for extracting the data of the statistics.
 
 License of the project: AGPL
