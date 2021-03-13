@@ -1,15 +1,15 @@
 SELECT
-	WEEKOFYEAR(entry_created) AS `week`,
-	DAYOFWEEK(entry_created) AS day_of_week,
-	DAYNAME(entry_created) AS `day`,
-	COUNT(DAYNAME(entry_created)) AS tickets
+	WEEKOFYEAR(CONVERT_TZ(entry_created, '+00:00', :timezone)) AS `week`,
+	DAYOFWEEK(CONVERT_TZ(entry_created, '+00:00', :timezone)) AS day_of_week,
+	DAYNAME(CONVERT_TZ(entry_created, '+00:00', :timezone)) AS `day`,
+	COUNT(DAYNAME(CONVERT_TZ(entry_created, '+00:00', :timezone))) AS tickets
 FROM
 	stats_agents
 WHERE
-	entry_created BETWEEN :date_from AND :date_to
+	CONVERT_TZ(entry_created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 GROUP BY
-	WEEKOFYEAR(entry_created),
-	DAYNAME(entry_created)
+	WEEKOFYEAR(CONVERT_TZ(entry_created, '+00:00', :timezone)),
+	DAYNAME(CONVERT_TZ(entry_created, '+00:00', :timezone))
 ORDER BY
-	WEEKOFYEAR(entry_created) ASC,
-	DAYOFWEEK(entry_created) ASC
+	`week` ASC,
+	day_of_week ASC

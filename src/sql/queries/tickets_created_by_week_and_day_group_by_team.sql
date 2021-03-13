@@ -1,18 +1,19 @@
 SELECT
 	team_id,
 	team_name,
-	WEEK(created) AS `week`,
-	DAYOFWEEK(created) AS day_of_week,
-	DAYNAME(created) AS `day`,
-	COUNT(DAYNAME (created)) AS tickets
+	WEEK(CONVERT_TZ(created, '+00:00', :timezone)) AS `week`,
+	DAYOFWEEK(CONVERT_TZ(created, '+00:00', :timezone)) AS day_of_week,
+	DAYNAME(CONVERT_TZ(created, '+00:00', :timezone)) AS `day`,
+	COUNT(DAYNAME (CONVERT_TZ(created, '+00:00', :timezone))) AS tickets
 FROM
 	stats_tickets
 WHERE
-	team_id IS NOT NULL AND created BETWEEN :date_from AND :date_to
+	team_id IS NOT NULL
+	AND CONVERT_TZ(created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 GROUP BY
 	team_name,
-	WEEK(created),
-	DAYNAME(created)
+	WEEK(CONVERT_TZ(created, '+00:00', :timezone)),
+	DAYNAME(CONVERT_TZ(created, '+00:00', :timezone))
 ORDER BY
-	WEEK(created) ASC,
-	DAYOFWEEK(created) ASC
+	`week` ASC,
+	day_of_week ASC

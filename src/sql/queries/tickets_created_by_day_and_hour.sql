@@ -1,15 +1,15 @@
 SELECT
-	DAYOFWEEK(created) AS day_of_week,
-	DAYNAME(created) AS `day`,
-	HOUR(created) AS `hour`,
-	COUNT(DAYNAME(created)) AS tickets
+	DAYOFWEEK(CONVERT_TZ(created, '+00:00', :timezone)) AS day_of_week,
+	DAYNAME(CONVERT_TZ(created, '+00:00', :timezone)) AS `day`,
+	HOUR(CONVERT_TZ(created, '+00:00', :timezone)) AS `hour`,
+	COUNT(DAYNAME(CONVERT_TZ(created, '+00:00', :timezone))) AS tickets
 FROM
 	stats_tickets
 WHERE
-	created BETWEEN :date_from AND :date_to
+	CONVERT_TZ(created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 GROUP BY
-	DAYNAME(created),
-	HOUR(created)
+	DAYNAME(CONVERT_TZ(created, '+00:00', :timezone)),
+	HOUR(CONVERT_TZ(created, '+00:00', :timezone))
 ORDER BY
-	DAYOFWEEK(created) ASC,
-	HOUR(created) ASC
+	day_of_week ASC,
+	`hour` ASC

@@ -2,8 +2,8 @@
 SELECT
 	rut,
 	COUNT(rut) AS tickets,
-	MIN(created) AS first_created,
-	MAX(created) AS last_created,
+	CONVERT_TZ(MIN(created), '+00:00', :timezone) AS first_created,
+	CONVERT_TZ(MAX(created), '+00:00', :timezone) AS last_created,
 	ROUND(AVG(service_time)) AS avg_service_time,
 	SUM(client_messages) AS sum_client_messages,
 	ROUND(AVG(client_messages)) AS avg_client_messages,
@@ -14,8 +14,8 @@ SELECT
 FROM
 	stats_clients
 WHERE
-	created BETWEEN :date_from AND :date_to
+	CONVERT_TZ(created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 GROUP BY
 	rut
 ORDER BY
-	tickets DESC
+	tickets DESC, last_created DESC

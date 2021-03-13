@@ -11,7 +11,7 @@ FROM
 			stats_clients
 		WHERE
 			source = 'V'
-			AND created BETWEEN :date_from AND :date_to
+			AND CONVERT_TZ(created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 	) AS t
 GROUP BY
 	subject

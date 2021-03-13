@@ -24,7 +24,7 @@ define('STATS_PLUGIN_ROOT', dirname(dirname(__FILE__)));
 /**
  * Controlador de las estadísticas vía API
  * @author Esteban De La Fuente Rubio, DeLaF (esteban[at]sasco.cl)
- * @version 2021-03-11
+ * @version 2021-03-13
  */
 class StatsApiController extends ApiController
 {
@@ -36,12 +36,26 @@ class StatsApiController extends ApiController
         // set from and to
         $date_from = !empty($_GET['date_from']) ? date('Y-m-d', strtotime($_GET['date_from'])) : date('Y-m').'-01';
         $date_to = !empty($_GET['date_to']) ? date('Y-m-d', strtotime($_GET['date_to'])) : date('Y-m-t', strtotime($date_from));
+        // get timezone
+        global $ost;
+        $timezone = (new DateTime('now', new DateTimeZone($ost->getConfig()->getDbTimezone())))->format('P');
         // create response with all the queries availables
-        $response = ['date' => ['from'=>$date_from, 'to'=>$date_to], 'stats'=>[]];
+        $response = [
+            'date' => [
+                'from' => $date_from,
+                'to' => $date_to,
+                'timezone' => $timezone
+            ],
+            'stats' => []
+        ];
         foreach ($this->getQueries() as $name => $query) {
             $response['stats'][$name] = $this->query(
                 $query,
-                [':date_from' => $date_from, ':date_to' => $date_to.' 23:59:59']
+                [
+                    ':date_from' => $date_from,
+                    ':date_to' => $date_to.' 23:59:59',
+                    ':timezone' => $timezone,
+                ]
             );
         }
         // prepare response from result

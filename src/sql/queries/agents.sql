@@ -19,7 +19,7 @@ FROM
 			stats_agents
 		WHERE
 			entry_type = 'R'
-			AND entry_created BETWEEN :date_from AND :date_to
+			AND CONVERT_TZ(entry_created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 		GROUP BY
 			agent
 	) AS r ON r.agent = as2.agent
@@ -32,12 +32,12 @@ FROM
 			stats_agents
 		WHERE
 			entry_type = 'N'
-			AND entry_created BETWEEN :date_from AND :date_to
+			AND CONVERT_TZ(entry_created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 		GROUP BY
 			agent
 	) AS n ON n.agent = as2.agent
 WHERE
-	as2.entry_created BETWEEN :date_from AND :date_to
+        CONVERT_TZ(as2.entry_created, '+00:00', :timezone) BETWEEN :date_from AND :date_to
 GROUP BY
 	as2.agent
 ORDER BY
