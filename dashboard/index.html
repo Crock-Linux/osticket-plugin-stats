@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+      <meta charset="utf-8">
+      <title>Estadísticas de osTicket</title>
+      <link rel="shortcut icon" href="favicon.png" />
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment-with-locales.min.js"></script>
+      <script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+      <link rel="stylesheet" href="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.10.0/css/all.css">
+      <link rel="stylesheet" href="js/jquery.CalendarHeatmap.min.css">
+      <script src="js/jquery.CalendarHeatmap.min.js"></script>
+  </head>
+  <body>
+    <div class="m-4">
+      <div class="row">
+        <div class="col-md-2 mb-4">
+          <form>
+            <select class="form-select" onchange="change_date_type(this.value)" id="date_type">
+              <option value="day">Día actual</option>
+              <option value="current">Mes actual</option>
+              <option value="previous">Mes anterior</option>
+            </select>
+          </form>
+        </div>
+        <div class="col-md-8 mb-4">
+          <div class="text-center">
+            <h1>
+              Estadísticas de osTicket
+              <span class="fs-4 text">entre el <span id="date_from"></span> y el <span id="date_to"></span></span>
+            </h1>
+          </div>
+        </div>
+        <div class="col-md-2 mb-4">
+          <div class="text-center" id="winner"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xl-9">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <canvas id="agents"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <canvas id="sales"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <canvas id="tickets_created_by_day_and_hour"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <canvas id="agents_entry_created_by_hour_group_by_agent"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="card mb-4">
+                <div class="card-body">
+                  <div id="tickets_created_2_years"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 small mb-4">
+          <div class="card mb-4">
+            <div class="card-body">
+              <table id="agents_last_response_by_ticket" class="display" width="100%"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6 small mb-4">
+          <div class="card mb-4">
+            <div class="card-body">
+              <table id="clients" class="display" width="100%"></table>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 small mb-4">
+          <div class="card mb-4">
+            <div class="card-body">
+              <table id="tickets_overdue" class="display" width="100%"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+
+      window.chartColors = {
+	      red: 'rgb(255, 99, 132)',
+	      orange: 'rgb(255, 159, 64)',
+	      yellow: 'rgb(255, 205, 86)',
+	      green: 'rgb(16, 138, 38)',
+	      blue: 'rgb(54, 162, 235)',
+	      purple: 'rgb(153, 102, 255)',
+	      grey: 'rgb(201, 203, 207)',
+        pink: 'rgb(252, 51, 255)',
+        brown: 'rgb(138, 99, 9)',
+        calypso: 'rgb(1, 176, 187)'
+      };
+
+      var url = document.location.toString();
+      var date_type = url.match('#') ? url.split('#')[1] : 'current';
+      var data = getStats(date_type);
+
+      $(function() {
+        document.getElementById('date_from').textContent = date_format(data.date.from);
+        document.getElementById('date_to').textContent = date_format(data.date.to);
+        set_winner();
+        graph_agents_create();
+        graph_agents_entry_created_by_hour_group_by_agent_create();
+        graph_tickets_created_by_day_and_hour_create();
+        graph_sales_create();
+        table_clients_create();
+        table_tickets_overdue_create();
+        table_agents_last_response_by_ticket_create();
+        graph_tickets_created_2_years_create();
+      });
+
+      function date_format(date) {
+        moment.locale('es');
+        return moment(date).format('D MMMM YYYY');
+      }
+
+      function getStats(type) {
+        var json = null;
+        $.ajax({
+          async: false,
+          global: false,
+          cache: false,
+          url: 'json/stats-' + type + '.json',
+          dataType: 'json',
+          success: function (data) {
+            json = data;
+          }
+        });
+        return json;
+      }
+
+      function set_winner() {
+        if (data.stats.agents.length == 0) {
+          document.getElementById('winner').textContent = '';
+        } else {
+          $('#winner').html('<div class="float-start me-2"><img src="https://gravatar.com/avatar/' + data.stats.agents[0].agent_email_md5 + '?size=64" class="img-thumbnail" /></div>' + data.stats.agents[0].agent + '<br/><span class="small"> ' + data.stats.agents[0].actions_total + ' acciones en ' + data.stats.agents[0].actions_tickets + ' tickets</span>');
+        }
+      }
+
+      function graph_agents_create() {
+        // preparar datos
+        var agents = [];
+        var mensajes = [];
+        var notas_internas = [];
+        data.stats.agents.forEach(function(agent) {
+          agents.push(agent.agent);
+          mensajes.push(agent.messages_total);
+          notas_internas.push(agent.internal_notes_total);
+        });
+        // armar datos gráfico
+        var dataSet = {
+          labels: agents,
+          datasets: [
+            {
+              label: 'Mensajes',
+              backgroundColor: window.chartColors.red,
+              data: mensajes
+            },
+            {
+              label: 'Notas internas',
+              backgroundColor: window.chartColors.blue,
+              data: notas_internas
+            }
+          ]
+        };
+        // crear gráfico
+        var ctx = document.getElementById('agents').getContext('2d');
+        window.graph_agents = new Chart(ctx, {
+          type: 'bar',
+          data: dataSet,
+          options: {
+            responsive: true,
+            title: {
+              display: true,
+              text: 'Interacciones por agente'
+            },
+            tooltips: {
+              mode: 'index',
+              intersect: false
+            },
+            scales: {
+              xAxes: [{
+                stacked: true,
+              }],
+              yAxes: [{
+                stacked: true
+              }]
+            }
+          }
+        });
+      }
+
+      function graph_agents_entry_created_by_hour_group_by_agent_create() {
+        // preparar datos
+        var agents = {};
+        var agents_array = [];
+        var i = 0;
+        var tickets_max = 0;
+        data.stats.agents_entry_created_by_hour_group_by_agent.forEach(function(stat) {
+          if (agents[stat.agent] === undefined) {
+            agents[stat.agent] = i++;
+            agents_array.push(stat.agent);
+          }
+          if (parseInt(stat.tickets) > tickets_max) {
+            tickets_max = parseInt(stat.tickets);
+          }
+        });
+        var scale_r = tickets_max > 15 ? 5 : 1;
+        var tickets = [];
+        data.stats.agents_entry_created_by_hour_group_by_agent.forEach(function(stat) {
+          tickets.push({
+            x: stat.hour,
+            y: agents[stat.agent],
+            r: Math.round(stat.tickets/scale_r)
+          });
+        });
+        // armar datos del gráfico
+        var dataSet = {
+          datasets: [
+            {
+              label: 'Entradas' + (scale_r != 1 ? (' (aprox. cantidad * ' + scale_r + ')') : ''),
+              data: tickets,
+              backgroundColor:window.chartColors.green
+            }
+          ]
+        };
+        // crear gráfico
+        var ctx = document.getElementById('agents_entry_created_by_hour_group_by_agent').getContext('2d');
+        window.agents_entry_created_by_hour_group_by_agent = new Chart(ctx, {
+          type: 'bubble',
+          data: dataSet,
+          options: {
+            responsive: true,
+            title: {
+              display: true,
+              text: 'Mensajes y notas internas por agente y hora'
+            },
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    callback: function(value, index, values) {
+                      return agents_array[value];
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        });
+      }
+
+      function graph_tickets_created_by_day_and_hour_create() {
+        // preparar datos
+        var tickets = [];
+        data.stats.tickets_created_by_day_and_hour.forEach(function(stat) {
+          tickets.push({
+            x: stat.hour,
+            y: ((stat.day_of_week - 1) - 6) * -1,
+            r: stat.tickets
+          });
+        });
+        // armar datos del gráfico
+        var dataSet = {
+          datasets: [
+            {
+              label: 'Tickets',
+              data: tickets,
+              backgroundColor:window.chartColors.green
+            }
+          ]
+        };
+        // crear gráfico
+        var ctx = document.getElementById('tickets_created_by_day_and_hour').getContext('2d');
+        window.tickets_created_by_day_and_hour = new Chart(ctx, {
+          type: 'bubble',
+          data: dataSet,
+          options: {
+            responsive: true,
+            title: {
+              display: true,
+              text: 'Tickets creados por día y hora'
+            },
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    callback: function(value, index, values) {
+                      return ['Sábado', 'Viernes', 'Jueves', 'Miércoles', 'Martes', 'Lunes', 'Domingo'][value];
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        });
+      }
+
+      function graph_sales_create() {
+        // preparar datos
+        var labels = [];
+        var dataSet = [];
+        var backgroundColors = [];
+        var colors = Object.keys(window.chartColors);
+        var i = 0;
+        data.stats.sales.forEach(function(sale) {
+          labels.push(sale.subject);
+          dataSet.push(sale.tickets);
+          backgroundColors.push(window.chartColors[colors[i++%colors.length]]);
+        });
+        // armar datos del gráfico
+        var config = {
+			    type: 'doughnut',
+			    data: {
+				    datasets: [{
+					    data: dataSet,
+					    backgroundColor: backgroundColors,
+					    label: 'Dataset 1'
+				    }],
+				    labels: labels
+			    },
+			    options: {
+				    responsive: true,
+				    legend: {
+					    position: 'top',
+				    },
+				    title: {
+					    display: true,
+					    text: 'Servicios cotizados'
+				    },
+				    animation: {
+					    animateScale: true,
+					    animateRotate: true
+				    }
+			    }
+		    };
+        // crear gráfico
+        var ctx = document.getElementById('sales').getContext('2d');
+			  window.sales = new Chart(ctx, config);
+      }
+
+      function table_clients_create() {
+        var dataSet = [];
+        data.stats.clients.forEach(function(client) {
+          dataSet.push([
+            '<a href="' + data.osticket.url + '/scp/tickets.php?a=search&search-type=&query=' + client.rut + '" target="_blank">' + client.rut + '</a>',
+            date_format(client.first_created),
+            date_format(client.last_created),
+            client.tickets,
+            client.sum_client_messages,
+            client.sum_staff_messages,
+            client.sum_internal_notes
+          ]);
+        });
+        window.clients = $('#clients').DataTable({
+          data: dataSet,
+          columns: [
+            { title: 'RUT' },
+            { title: 'Primer ticket' },
+            { title: 'Último ticket' },
+            { title: 'Tickets' },
+            { title: 'Mensajes' },
+            { title: 'Respuestas' },
+            { title: 'Notas internas' }
+          ],
+          'order': [[ 3, 'desc' ], [ 4, 'desc' ]]
+        });
+      }
+
+      function table_tickets_overdue_create() {
+        var dataSet = [];
+        data.stats.tickets_overdue.forEach(function(ticket) {
+          dataSet.push([
+            '<a href="' + data.osticket.url + '/scp/tickets.php?id=' + ticket.ticket_id + '" target="_blank">' + ticket.ticket_number + '</a>' + (ticket.reopened == 1 ? ' <i class="fas fa-door-open text-danger"></i>' : ''),
+            ticket.created,
+            ticket.duedate,
+            ticket.subject + '<br/><span class="small">en ' + ticket.team_name + ' por <a href="' + data.osticket.url + '/scp/users.php?id=' + ticket.user_id + '" title="' + ticket.user_email + '">' + ticket.user_name + '</a></span>',
+          ]);
+        });
+        window.tickets_overdue = $('#tickets_overdue').DataTable({
+          data: dataSet,
+          columns: [
+            { title: 'Ticket' },
+            { title: 'Creado' },
+            { title: 'Vencido' },
+            { title: 'Asunto' },
+          ],
+          'order': [[ 2, 'asc' ]],
+          'aoColumnDefs': [
+            {
+              'aTargets': [1, 2],
+              'fnCreatedCell': function (nTd, sData, oData, iRow, iCol) {
+                $(nTd).html(moment(sData).fromNow());
+              }
+            },
+            {
+              'targets': 0,
+              'width': '5em'
+            }
+          ],
+          pageLength: 7,
+          lengthMenu: [7, 10, 25, 50, 100],
+        });
+      }
+
+      function table_agents_last_response_by_ticket_create() {
+        var dataSet = [];
+        data.stats.agents_last_response_by_ticket.forEach(function(ticket) {
+          dataSet.push([
+            '<div class="float-start me-2"><img src="https://gravatar.com/avatar/' + ticket.agent_email_md5 + '?size=32"/></div>' + ticket.agent + ' <span class="small">en ' + ticket.team_name + '</span>',
+            '<a href="' + data.osticket.url + '/scp/tickets.php?id=' + ticket.ticket_id + '" target="_blank">' + ticket.ticket_number + '</a>' + (ticket.ticket_closed == 1 ? ' <i class="fa fa-check text-success"></i>' : ''),
+            ticket.last_entry,
+          ]);
+        });
+        window.agents_last_response_by_ticket = $('#agents_last_response_by_ticket').DataTable({
+          data: dataSet,
+          columns: [
+            { title: 'Agente' },
+            { title: 'Ticket' },
+            { title: 'Última respuesta' },
+          ],
+          'order': [[ 2, 'desc' ]],
+          'aoColumnDefs': [
+            {
+              'aTargets': [2],
+              'fnCreatedCell': function (nTd, sData, oData, iRow, iCol) {
+                $(nTd).html(moment(sData).fromNow());
+              }
+            },
+            {
+              'targets': 1,
+              'width': '4em'
+            }
+          ]
+        });
+      }
+
+      // https://github.com/SeBassTian23/CalendarHeatmap
+      function graph_tickets_created_2_years_create() {
+        var dataSet = [];
+        data.stats.tickets_created_2_years.forEach(function(day) {
+          dataSet.push({count: day.tickets, date: day.day});
+        });
+        $('#tickets_created_2_years').CalendarHeatmap(dataSet, {
+          title: 'Tickets creados en los últimos 15 meses',
+          months: 15,
+          weekStartDay: 7,
+          tiles: {
+            shape: 'circle'
+          },
+          lastMonth: moment(data.date.to).month() + 1,
+          lastYear: moment(data.date.to).year(),
+          labels: {
+            days: true,
+            months: true,
+            custom: {
+              weekDayLabels: ['Sábado', 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
+              monthLabels: null
+            }
+          },
+          legend: {
+            show: true,
+            align: 'right',
+            minLabel: 'Menos tickets creados',
+            maxLabel: 'Más tickets creados',
+            divider: ' a '
+          },
+        });
+      }
+
+      function graph_tickets_created_2_years_update() {
+        var dataSet = [];
+        data.stats.tickets_created_2_years.forEach(function(day) {
+          dataSet.push({count: day.tickets, date: day.day});
+        });
+        $('#tickets_created_2_years').CalendarHeatmap('updateDates', dataSet);
+        $('#tickets_created_2_years').CalendarHeatmap('updateOptions', {
+          lastMonth: moment(data.date.to).month() + 1,
+          lastYear: moment(data.date.to).year(),
+        });
+      }
+
+      function update_data() {
+        data = getStats(date_type);
+        // actualizar fechas del título
+        document.getElementById('date_from').textContent = date_format(data.date.from);
+        document.getElementById('date_to').textContent = date_format(data.date.to);
+        // winner
+        set_winner();
+        // agents
+        window.graph_agents.destroy();
+        graph_agents_create();
+        window.graph_agents.update(0);
+        // agents_entry_created_by_hour_group_by_agent
+        window.agents_entry_created_by_hour_group_by_agent.destroy();
+        graph_agents_entry_created_by_hour_group_by_agent_create();
+        window.agents_entry_created_by_hour_group_by_agent.update(0);
+        // tickets_created_by_day_and_hour
+        window.tickets_created_by_day_and_hour.destroy();
+        graph_tickets_created_by_day_and_hour_create();
+        window.tickets_created_by_day_and_hour.update(0);
+        // sales
+        window.sales.destroy();
+        graph_sales_create();
+        window.sales.update(0);
+        // clients
+        window.clients.destroy();
+        table_clients_create();
+        // tickets_overdue
+        window.tickets_overdue.destroy();
+        table_tickets_overdue_create();
+        // agents_last_response_by_ticket
+        window.agents_last_response_by_ticket.destroy();
+        table_agents_last_response_by_ticket_create();
+        // tickets_created_2_years
+        graph_tickets_created_2_years_update();
+      }
+
+      function change_date_type(type) {
+        window.location = document.location.origin + document.location.pathname + '#' + type;
+        date_type = type;
+        update_data();
+      }
+
+      $('#date_type').val(date_type);
+
+      setInterval(function(){ update_data(); }, 60000);
+
+    </script>
+  </body>
+</html>
