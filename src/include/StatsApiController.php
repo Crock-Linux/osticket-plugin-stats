@@ -41,6 +41,9 @@ class StatsApiController extends ApiController
         $timezone = (new DateTime('now', new DateTimeZone($ost->getConfig()->getDbTimezone())))->format('P');
         // create response with all the queries availables
         $response = [
+            'osticket' => [
+                'url' => $ost->getConfig()->getBaseUrl(),
+            ],
             'date' => [
                 'from' => $date_from,
                 'to' => $date_to,
