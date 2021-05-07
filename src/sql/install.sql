@@ -99,6 +99,7 @@ SELECT
     ot.`number`,
     t.subject,
     t.rut,
+    cm.body,
     ot.created,
     ot.closed,
     DATEDIFF(ot.closed, ot.created)  AS service_time,
@@ -144,6 +145,7 @@ FROM
     LEFT JOIN (
         SELECT
             ot2.object_id AS ticket_id,
+            ote.body,
             COUNT(*) AS client_messages
         FROM
             ost_thread ot2
