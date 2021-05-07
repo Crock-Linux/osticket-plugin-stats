@@ -49,13 +49,30 @@ $dates = [
     ],
 ];
 
+// consultas que se necesitan para las estadísticas
+$queries_required = [
+    'agents',
+    'agents_entry_created_by_hour_group_by_agent',
+    'tickets_created_by_day_and_hour',
+    'sales',
+    'clients',
+    'tickets_overdue',
+    'agents_last_response_by_ticket',
+    'tickets_created_2_years',
+];
+
 // realizar consulta por cada rango de fechas
 $dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'json';
 if (!is_dir($dir)) {
     mkdir($dir);
 }
 foreach ($dates as $type => $date) {
-    $query_url = sprintf($url.'/api/http.php/stats/all.json?date_from=%s&date_to=%s', $date['from'], $date['to']);
+    $query_url = sprintf(
+        $url.'/api/http.php/stats/all.json?date_from=%s&date_to=%s&queries=%s',
+        $date['from'],
+        $date['to'],
+        implode(',', $queries_required)
+    );
     $stats = file_get_contents($query_url, false, stream_context_create([
         'http' => [
             'method' => 'GET',
