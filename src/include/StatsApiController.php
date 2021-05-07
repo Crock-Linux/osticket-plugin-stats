@@ -36,6 +36,7 @@ class StatsApiController extends ApiController
         // set from and to
         $date_from = !empty($_GET['date_from']) ? date('Y-m-d', strtotime($_GET['date_from'])) : date('Y-m').'-01';
         $date_to = !empty($_GET['date_to']) ? date('Y-m-d', strtotime($_GET['date_to'])) : date('Y-m-t', strtotime($date_from));
+        $queries = !empty($_GET['queries']) ? explode(',', $_GET['queries']) : [];
         // get timezone
         global $ost;
         $timezone = (new DateTime('now', new DateTimeZone($ost->getConfig()->getTimezone())))->format('P');
@@ -51,7 +52,7 @@ class StatsApiController extends ApiController
             ],
             'stats' => []
         ];
-        foreach ($this->getQueries() as $name => $query) {
+        foreach ($this->getQueries($queries) as $name => $query) {
             $response['stats'][$name] = $this->query(
                 $query,
                 [
@@ -72,15 +73,15 @@ class StatsApiController extends ApiController
         $this->response(200, $response, 'application/'.$format);
     }
 
-    private function getQueries($query = null)
+    private function getQueries(array $queries_required = [])
     {
         $dir = STATS_PLUGIN_ROOT . '/sql/queries';
         $filesAux = scandir($dir);
         $queries = [];
         foreach($filesAux as &$file) {
-            if($file[0] != '.') {
+            if ($file[0] != '.') {
                 $query_name = substr($file, 0, -4);
-                if ($query === null || $query == $query_name) {
+                if (empty($queries_required) || in_array($query_name, $queries_required)) {
                     $queries[$query_name] = file_get_contents($dir . '/' . $file);
                 }
             }
