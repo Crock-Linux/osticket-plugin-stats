@@ -19,7 +19,7 @@
 
 return [
     'id'            => 'sasco:stats', # notrans
-    'version'       => '1.0.0',
+    'version'       => '1.1.0',
     'name'          => /* trans */ 'Stats',
     'author'        => 'Esteban De La Fuente Rubio',
     'description'   => /* trans */ 'Create statistics from tickets.',

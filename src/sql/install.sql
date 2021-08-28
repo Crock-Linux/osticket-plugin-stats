@@ -36,6 +36,13 @@ SELECT
     ot.created,
     ot.closed,
     DATEDIFF(ot.closed, ot.created)  AS service_time,
+    ot.reopened,
+    COALESCE(ot.duedate, ot.est_duedate) AS duedate,
+    ot.isanswered,
+    ot.isoverdue,
+    os.staff_id,
+    os.username AS staff_username,
+    CONCAT(os.firstname, ' ', os.lastname) AS staff_name,
     ot3.team_id,
     ot3.name AS team_name,
     oht.topic_id,
@@ -87,6 +94,7 @@ FROM
         GROUP BY
             ot2.object_id
     ) AS `in` ON `in`.ticket_id = ot.ticket_id
+    LEFT JOIN ost_staff os ON os.staff_id = ot.staff_id
     LEFT JOIN ost_team ot3 ON ot3.team_id = ot.team_id
     LEFT JOIN ost_help_topic oht  ON oht.topic_id = ot.topic_id
 ;
